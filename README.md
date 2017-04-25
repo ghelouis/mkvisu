@@ -10,11 +10,9 @@ NB: data is overwritten everytime this script is run.
 
 Usage
 -----
-`./mkvisu VIDEOS METADATA TITLE`
+`./mkvisu VIDEOS TITLE`
 - VIDEOS: Videos root directory. It will be scanned recursively looking for
   MKVs.
-- METADATA: Directory that will be used to store extracted metadata. It doesn't
-  have to exist.
 - TTITLE: Title of the html page generated :)
 
 Example:

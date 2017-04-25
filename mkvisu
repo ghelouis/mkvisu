@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Extract cover and title from mkv files recursively and generate a web page
+
+
+videos_directory="$1"
+metadata_directory="$2"
+title="$3"
+index="$metadata_directory"/index.html
+
+check_dependency() {
+  if [ -z `which $1` ]; then
+    echo "Missing dependency: $1" && exit 1
+  fi
+}
+
+extract_metadata_and_generate_page() {
+  movie="$1"
+  name=$(basename "$movie")
+  title=$(mediainfo "$movie" 2> /dev/null | grep "Movie name" | awk -F ": " '{print $2}')
+
+  if [ -z "$title" ]; then
+    echo "No title found for $name"
+    title="$name"
+  fi
+
+  nbcovers=`mkvmerge -i "$movie" | grep "type 'image" | wc -l`
+  if [ "$nbcovers" -eq 0 ]; then
+    echo "No cover found for $name"
+    cover=""
+  else
+    cover="$metadata_directory"/covers/cover_"$title".jpg 
+    mkvextract attachments "$movie" 1:"$cover" > /dev/null 2>&1
+  fi
+  echo "<div><img src=\"$cover\" title=\"$title\" alt=\"[${title}]\" /></div>" >> "$index"
+}
+
+generate() {
+  echo "Gathering metadata..."
+  shopt -s globstar
+  for movie in **/*; do
+    if [ ! -d "$movie" ]; then
+      ext="${movie##*.}"
+      if [ "$ext" != "mkv" ]; then
+        echo "Cannot get metadata (is not mkv) from $movie"
+      else
+        extract_metadata_and_generate_page "$movie"
+      fi
+    fi
+  done
+}
+
+if [ "$#" -ne 3 ]; then
+    echo "Usage: ./mkvisu VIDEOS_DIR METADATA_DIR TITLE" && exit 1
+fi
+
+if [ ! -d "$videos_directory" ]; then
+  echo "$videos_directory not found!" && exit 1
+fi
+
+check_dependency "mkvextract"
+check_dependency "mediainfo"
+
+mkdir -p "$metadata_directory"/covers
+cd "$videos_directory"
+script_directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cp "$script_directory"/style.css "$metadata_directory"
+echo "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>$title</title><link rel=\"stylesheet\" href=\"style.css\"></head><body><h1>$title</h1><div class=\"gallery cf\">" > "$index"
+generate
+echo "</div></body> </html>" >> "$index"

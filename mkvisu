@@ -4,9 +4,9 @@
 
 
 videos_directory="$1"
-metadata_directory="$2"
-title="$3"
-index="$metadata_directory"/index.html
+title="$2"
+target="generated"
+index="$target"/index.html
 
 check_dependency() {
   if [ -z `which $1` ]; then
@@ -29,8 +29,8 @@ extract_metadata_and_generate_page() {
     echo "No cover found for $name"
     cover=""
   else
-    cover="$metadata_directory"/covers/cover_"$title".jpg 
-    mkvextract attachments "$movie" 1:"$cover" > /dev/null 2>&1
+    cover="covers/cover_"$title".jpg"
+    mkvextract attachments "$movie" 1:"$target"/"$cover" > /dev/null 2>&1
   fi
   echo "<div><img src=\"$cover\" title=\"$title\" alt=\"[${title}]\" /></div>" >> "$index"
 }
@@ -38,7 +38,7 @@ extract_metadata_and_generate_page() {
 generate() {
   echo "Gathering metadata..."
   shopt -s globstar
-  for movie in **/*; do
+  for movie in "$videos_directory"/**/*; do
     if [ ! -d "$movie" ]; then
       ext="${movie##*.}"
       if [ "$ext" != "mkv" ]; then
@@ -50,8 +50,8 @@ generate() {
   done
 }
 
-if [ "$#" -ne 3 ]; then
-    echo "Usage: ./mkvisu VIDEOS_DIR METADATA_DIR TITLE" && exit 1
+if [ "$#" -ne 2 ]; then
+    echo "Usage: ./mkvisu VIDEOS_ROOT_DIR TITLE" && exit 1
 fi
 
 if [ ! -d "$videos_directory" ]; then
@@ -61,10 +61,9 @@ fi
 check_dependency "mkvextract"
 check_dependency "mediainfo"
 
-mkdir -p "$metadata_directory"/covers
-cd "$videos_directory"
-script_directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cp "$script_directory"/style.css "$metadata_directory"
-echo "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>$title</title><link rel=\"stylesheet\" href=\"style.css\"></head><body><h1>$title</h1><div class=\"gallery cf\">" > "$index"
+mkdir -p "$target"/covers
+cp templates/index.html.start "$index"
+sed -i "s/TITLE/$title/g" "$index"
 generate
-echo "</div></body> </html>" >> "$index"
+cat templates/index.html.end >> "$index"
+cp templates/style.css "$target"

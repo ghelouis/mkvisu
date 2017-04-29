@@ -33,7 +33,7 @@ extract_metadata_and_generate_page() {
     cover_id=`mkvmerge -i "$movie" | grep "type 'image" | head -n 1 | awk '{print $3}'`
     mkvextract attachments "$movie" "$cover_id$target"/"$cover" > /dev/null 2>&1
   fi
-  echo "<div><img src=\"$cover\" title=\"$title\" alt=\"[${title}]\" /></div>" >> "$index"
+  echo "<img src=\"$cover\" title=\"$title\" alt=\"[${title}]\" />" >> "$index"
 }
 
 generate() {

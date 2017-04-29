@@ -13,7 +13,7 @@ Usage
 `./mkvisu VIDEOS TITLE`
 - VIDEOS: Videos root directory. It will be scanned recursively looking for
   MKVs.
-- TTITLE: Title of the html page generated :)
+- TITLE: Title of the html page generated :)
 
 Example:
-`./mkvisu ~/videos/ ~/videos/.metadata "My videos"`
+`./mkvisu ~/videos/ "My videos"`

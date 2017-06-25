@@ -1,7 +1,7 @@
 MKVISU
 ======
 
-Quick and dirty visualizer for MKV files.
+Simple visualizer for MKV files.
 
 Extract informations from mkv files and generate a static web page.
 

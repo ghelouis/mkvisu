@@ -5,7 +5,7 @@ Quick and dirty visualizer for MKV files.
 
 Extract informations from mkv files and generate a static web page.
 
-NB: data is overwritten everytime this script is run.
+NB: generated data is overwritten everytime the script is run.
 
 
 Usage
@@ -17,3 +17,10 @@ Usage
 
 Example:
 `./mkvisu ~/videos/ "My videos"`
+
+Informations extracted
+----------------------
+The following metadata are exploited:
+- title
+- cover (jpeg attachment)
+- audio languages

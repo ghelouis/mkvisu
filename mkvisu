@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Extract cover and title from mkv files recursively and generate a web page
+# Extract metadata from mkv files recursively and generate a web page
 
 
 videos_directory="$1"
-title="$2"
+page_title="$2"
 target="generated"
 index="$target"/index.html
 
@@ -33,7 +33,18 @@ extract_metadata_and_generate_page() {
     cover_id=`mkvmerge -i "$movie" | grep "type 'image" | head -n 1 | awk '{print $3}'`
     mkvextract attachments "$movie" "$cover_id$target"/"$cover" > /dev/null 2>&1
   fi
-  echo "      <img src=\"$cover\" title=\"$title\" alt=\"[${title}]\" />" >> "$index"
+
+  languages=`mkvmerge -i -F json "$movie" | jq -r '.tracks[] | select(.type=="audio") | .properties.language'`
+  while read -r lang; do
+    li="      <li class=\"selected\" onclick=\"filterByLang(this)\">$lang</li>"
+    if [ -z "`grep "$li" "$index".start`" ]; then
+      echo "$li" >> "$index".start
+    fi
+  done <<< "$languages"
+
+  languages="${languages//[$'\n']/ }"
+  title="$title [$languages]"
+  echo "      <img class=\"$languages\" src=\"$cover\" title=\"$title\" alt=\"[${title}]\" />" >> "$index".part1
 }
 
 generate() {
@@ -59,12 +70,14 @@ if [ ! -d "$videos_directory" ]; then
   echo "$videos_directory not found!" && exit 1
 fi
 
+check_dependency "mkvmerge"
 check_dependency "mkvextract"
 check_dependency "mediainfo"
+check_dependency "jq"
 
 mkdir -p "$target"/covers
-cp templates/index.html.start "$index"
-sed -i "s/TITLE/$title/g" "$index"
+cp templates/* "$target"
 generate
-cat templates/index.html.end >> "$index"
-cp templates/style.css "$target"
+cat "$index".start "$index".part1 "$index".end > "$index"
+sed -i "s/TITLE/$page_title/g" "$index"
+rm "$index".*

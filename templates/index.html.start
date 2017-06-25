@@ -6,6 +6,4 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <h1>TITLE</h1>
-    <input type="text" title="input" onkeyup="filterList()"/>
-    <div class="gallery cf">
+    <ul class="filters">

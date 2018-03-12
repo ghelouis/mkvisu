@@ -1,4 +1,3 @@
-    </ul>
     <h1>TITLE</h1>
-    <input type="text" title="input" onkeyup="filterList()"/>
+    <input type="text" title="input" onkeyup="filterList()" autofocus/>
     <div class="gallery cf">

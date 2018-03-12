@@ -1,65 +1,120 @@
 #!/bin/bash
 
-# Extract metadata from mkv files recursively and generate a web page
+# Extract metadata from mkv files recursively and generate a static HTML
+# interface
 
 
 videos_directory="$1"
-page_title="$2"
-target="generated"
-index="$target"/index.html
+root_page_title="$2"
+root_target="generated"
+sub_dir_cover="COVER.jpg"
 
-check_dependency() {
-  if [ -z `which $1` ]; then
-    echo "Missing dependency: $1" && exit 1
-  fi
+check_dependencies() {
+  while [ "$1" != "" ]; do
+    if [ -z `which $1` ]; then
+      echo "Missing dependency: $1" && exit 1
+    fi
+    shift
+  done
 }
 
 extract_metadata_and_generate_page() {
-  movie="$1"
-  name=$(basename "$movie")
-  title=$(mediainfo "$movie" 2> /dev/null | grep "Movie name" | awk -F ": " '{print $2}')
+  local target="$1"
+  local index="$target"/index.html
+  local movie="$2"
+  local name=$(basename "$movie")
+  local title=$(mediainfo "$movie" 2> /dev/null | grep "Movie name" | awk -F ": " '{print $2}')
 
   if [ -z "$title" ]; then
     echo "No title found for $name"
     title="$name"
   fi
 
-  nbcovers=`mkvmerge -i "$movie" | grep "type 'image" | wc -l`
+  local nbcovers=`mkvmerge -i "$movie" | grep "type 'image" | wc -l`
   if [ "$nbcovers" -eq 0 ]; then
-    echo "No cover found for $name"
-    cover=""
+    local cover=""
   else
-    cover="covers/cover_"$title".jpg"
-    cover_id=`mkvmerge -i "$movie" | grep "type 'image" | head -n 1 | awk '{print $3}'`
+    local cover="covers/cover_"$title".jpg"
+    local cover_id=`mkvmerge -i "$movie" | grep "type 'image" | head -n 1 | awk '{print $3}'`
     mkvextract attachments "$movie" "$cover_id$target"/"$cover" > /dev/null 2>&1
   fi
 
-  languages=`mkvmerge -i -F json "$movie" | jq -r '.tracks[] | select(.type=="audio") | .properties.language'`
-  while read -r lang; do
-    li="      <li class=\"selected\" onclick=\"filterByLang(this)\">$lang</li>"
-    if [ -z "`grep "$li" "$index".start`" ]; then
-      echo "$li" >> "$index".start
-    fi
-  done <<< "$languages"
+  local languages=`mkvmerge -i -F json "$movie" | jq -r '.tracks[] | select(.type=="audio") | .properties.language'`
 
-  languages="${languages//[$'\n']/ }"
-  title="$title [$languages]"
-  echo "      <img class=\"$languages\" src=\"$cover\" title=\"$title\" alt=\"[${title}]\" />" >> "$index".part1
+  local languages="${languages//[$'\n']/ }"
+  local title="$title [$languages]"
+  echo "      <img src=\"$cover\" title=\"$title\" alt=\"[${title}]\" />" >> "$index".part1
+}
+
+make_montage() {
+  local target="$1"
+  local title="$2"
+  local target_cover="$target/covers/cover_$title.jpg"
+  local src_covers="$target/$title/covers"
+
+  # fixed via css
+  width=200
+  height=295
+
+  local all_src_covers=`ls "$target/$title/covers"/* 2>/dev/null`
+  if [ "$all_src_covers" = "" ]; then
+    return
+  fi
+
+  # resize each image to given size and then merge them into one big image
+  montage -geometry "$width"x"$height" "$src_covers"/* "$target_cover"
+
+  # adjust width
+  current_width=`identify -ping -format "%w" "$target_cover"`
+  if [ $current_width -gt $width ]; then
+    convert "$target_cover" -resize "$width" "$target_cover"
+  fi
+
+  # resize while keeping ratio and filling gaps with white
+  convert "$target_cover" -gravity center -extent "$width"x"$height" "$target_cover"
+}
+
+generate_subpage() {
+  local target="$1"
+  local directory="$2"
+  local title=$(basename "$2")
+  local index="$target"/index.html
+
+  generate "$target/$title" "$title" "$directory"
+
+  if [ -f "$directory/$sub_dir_cover" ]; then
+    cp "$directory/$sub_dir_cover" "$target/covers/cover_$title.jpg"
+  else
+    make_montage "$target" "$title"
+  fi
+  echo "      <a href=\"$title/index.html\">" >> "$index".part1
+  echo "        <img src=\"covers/cover_${title}.jpg\" title=\"$title\" alt=\"[${title}]\" />" >> "$index".part1
+  echo "      </a>" >> "$index".part1
 }
 
 generate() {
-  echo "Gathering metadata..."
-  shopt -s globstar
-  for movie in "$videos_directory"/**/*; do
-    if [ ! -d "$movie" ]; then
-      ext="${movie##*.}"
-      if [ "$ext" != "mkv" ]; then
-        echo "Cannot get metadata (is not mkv) from $movie"
+  local target="$1"
+  local title="$2"
+  local directory="$3"
+  local index="$target"/index.html
+
+  mkdir -p "$target"/covers
+  cp templates/* "$target"
+
+  for f in "$directory"/*; do
+      if [ ! -d "$f" ]; then
+        file_type=$(file "$f" | awk -F ": " '{print $2}')
+        if [ "$file_type" = "Matroska data" ]; then
+          extract_metadata_and_generate_page "$target" "$f"
+        fi
       else
-        extract_metadata_and_generate_page "$movie"
+        generate_subpage "$target" "$f"
       fi
-    fi
   done
+
+  cat "$index".start "$index".part1 "$index".end > "$index"
+  sed -i "s/TITLE/$title/g" "$index"
+  rm "$index".start "$index".part1 "$index".end
 }
 
 if [ "$#" -ne 2 ]; then
@@ -70,14 +125,6 @@ if [ ! -d "$videos_directory" ]; then
   echo "$videos_directory not found!" && exit 1
 fi
 
-check_dependency "mkvmerge"
-check_dependency "mkvextract"
-check_dependency "mediainfo"
-check_dependency "jq"
+check_dependencies mkvmerge mkvextract mediainfo jq
 
-mkdir -p "$target"/covers
-cp templates/* "$target"
-generate
-cat "$index".start "$index".part1 "$index".end > "$index"
-sed -i "s/TITLE/$page_title/g" "$index"
-rm "$index".*
+generate "$root_target" "$root_page_title" "$videos_directory"

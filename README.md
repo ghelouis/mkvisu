@@ -8,6 +8,7 @@ generate an interface with static web pages.
 
 NB: generated data is overwritten each time this script is run.
 
+![Demo](demo/demo.gif)
 
 Usage
 -----
@@ -18,6 +19,9 @@ Usage
 
 Example:
 `./mkvisu ~/videos/ "My videos"`
+
+All generated files will be in the *generated* directory, with *index.html*
+being the entry point.
 
 Informations extracted
 ----------------------

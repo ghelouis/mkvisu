@@ -125,6 +125,6 @@ if [ ! -d "$videos_directory" ]; then
   echo "$videos_directory not found!" && exit 1
 fi
 
-check_dependencies mkvmerge mkvextract mediainfo jq
+check_dependencies mkvmerge mkvextract mediainfo jq montage convert
 
 generate "$root_target" "$root_page_title" "$videos_directory"

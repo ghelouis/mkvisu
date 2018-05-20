@@ -1,7 +1,7 @@
 MKVISU
 ======
 
-Simple visualizer for browsing MKV files.
+Simple visualizer for MKV files.
 
 How it works: metadata informations are extracted from mkv files and used to
 generate an interface with static web pages.
@@ -35,4 +35,4 @@ Features
 - Search (filter) by name
 - Cover grid display
 - Title and languages on hover
-- Auto-detect sub-folders and auto-generate its cover (composite of sub-images)
+- Recursive sub-folder detection

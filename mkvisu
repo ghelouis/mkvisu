@@ -23,7 +23,7 @@ extract_metadata_and_generate_page() {
   local index="$target"/index.html
   local movie="$2"
   local name=$(basename "$movie")
-  local title=$(mediainfo "$movie" 2> /dev/null | grep "Movie name" | awk -F ": " '{print $2}')
+  local title=$(mediainfo "$movie" 2> /dev/null | grep "Movie name" | awk -F " : " '{print $2}')
 
   if [ -z "$title" ]; then
     echo "No title found for $name"
@@ -34,7 +34,7 @@ extract_metadata_and_generate_page() {
   if [ "$nbcovers" -eq 0 ]; then
     local cover=""
   else
-    local cover="covers/cover_"$title".jpg"
+    local cover="covers/cover_"$name".jpg"
     local cover_id=`mkvmerge -i "$movie" | grep "type 'image" | head -n 1 | awk '{print $3}'`
     mkvextract attachments "$movie" "$cover_id$target"/"$cover" > /dev/null 2>&1
   fi
